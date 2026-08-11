@@ -390,7 +390,7 @@
 
   <!-- ===== 中间：角色展示 ===== -->
   <div class="panel center-panel">
-    <h1>✦ 换装情感协议 v2.0 ✦</h1>
+    <h1>✦ 换装情感协议 v2.1 ✦</h1>
     <div class="sub-head">--- 选择着装以更新对象状态 ---</div>
 
     <div id="character-box">
@@ -596,7 +596,7 @@
       var list = document.getElementById('commentList');
       var newItem = document.createElement('div');
       newItem.className = 'comment-item';
-      newItem.innerHTML = '<span class="name" style="color:#ffcc33;">🎉 系统公告</span><span>此为私密贴！您只有一次观看机会！</span><span class="time">刚刚</span>';
+      newItem.innerHTML = '<span class="name" style="color:#aaff88;">系统</span><span>此为私密贴！您只有一次观看机会！</span><span class="time">刚刚</span>';
       list.insertBefore(newItem, list.firstChild);
     };
 
@@ -656,6 +656,115 @@
   });
 
 // ============================================================
+// 📸 累计点击「旧版义体」解锁「偷拍视角」
+// ============================================================
+
+// 配置
+var OLD_BODY_TARGET = 10;        // 需要点击 10 次解锁
+var oldBodyClickCount = 0;       // 当前累计点击次数
+var isPeekUnlocked = false;      // 是否已解锁
+
+// 监听「旧版义体」的点击
+function trackOldBodyClick(buttonName) {
+    if (isPeekUnlocked) return;
+    if (buttonName !== '旧版义体') return;
+    
+    oldBodyClickCount++;
+    var remaining = OLD_BODY_TARGET - oldBodyClickCount;
+    
+    // 达到目标，解锁！
+    if (oldBodyClickCount >= OLD_BODY_TARGET) {
+        unlockPeekButton();
+    }
+}
+
+// 解锁「偷拍视角」按钮
+function unlockPeekButton() {
+    if (isPeekUnlocked) return;
+    isPeekUnlocked = true;
+    
+    var btnGroup = document.getElementById('btnGroup');
+    
+    // 检查是否已存在
+    var existingBtn = btnGroup.querySelector('.peek-hidden-btn');
+    if (existingBtn) return;
+    
+    var peekBtn = document.createElement('button');
+    peekBtn.className = 'cloth-btn peek-hidden-btn';
+    peekBtn.style.borderColor = '#ff66aa';
+    peekBtn.style.color = '#ff66aa';
+    peekBtn.style.boxShadow = '0 0 30px rgba(255, 102, 170, 0.4)';
+    peekBtn.style.animation = 'peekPulse 1.2s ease-in-out infinite';
+    peekBtn.textContent = '偷拍视角';
+    peekBtn.onclick = function() {
+        changeOutfit('images/peek.png', '组员趁我不备拍下来的。即使我再三说过我不介意他们拍我，但依旧有人喜欢用刁钻的角度展示我的义体。', 72);
+        peekBtn.style.opacity = '0.6';
+        peekBtn.style.cursor = 'default';
+        peekBtn.onclick = null;
+        
+        var list = document.getElementById('commentList');
+        var newItem = document.createElement('div');
+        newItem.className = 'comment-item';
+        newItem.innerHTML = '<span class="name" style="color:#aaff88;">系统</span><span class="message" style="color:#ffcc33;">来自 一名友好意识唤醒者 的追加留言：</span><span>看来你很喜欢这副义体？</span><span class="time">刚刚</span>';
+        list.insertBefore(newItem, list.firstChild);
+    };
+    
+    btnGroup.appendChild(peekBtn);
+    
+    // 添加闪烁动画
+    var styleSheet = document.createElement('style');
+    styleSheet.textContent = `
+        @keyframes peekPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 102, 170, 0.3); }
+            50% { box-shadow: 0 0 50px rgba(255, 102, 170, 0.7); }
+        }
+    `;
+    document.head.appendChild(styleSheet);
+    
+    // 更新监控反应
+    document.getElementById('reactionText').textContent = '📸 警告：偷拍视角已解锁！点击粉色按钮查看！';
+    document.getElementById('dialogueText').textContent = '📸 偷拍视角已解锁！点击粉色按钮查看！';
+    
+    // 在评论区发公告
+    var list = document.getElementById('commentList');
+    var newItem = document.createElement('div');
+    newItem.className = 'comment-item';
+    newItem.innerHTML = '<span class="name" style="color:#aaff88;">系统</span><span class="message" style="color:#ffcc33;">一名友好意识唤醒者 邀请 您 观看 偷拍视角</span><span class="time">刚刚</span>';
+    list.insertBefore(newItem, list.firstChild);
+}
+
+// ===== 修改换装按钮的点击追踪 =====
+// 在现有的 trackButtonClick 或 changeOutfit 中增加追踪
+
+// 方案：在 changeOutfit 函数开头增加追踪
+// 找到你现有的 changeOutfit 函数，在它的开头加上：
+// trackOldBodyClick(buttonName);  // 需要把按钮名称传进来
+
+// 但是因为你的 changeOutfit 没有接收按钮名称，我们需要用另一种方式：
+// 在按钮点击时，通过全局变量传递按钮名称
+
+// 如果你用的是之前的 trackButtonClick 系统，在里面加上：
+// 在 trackButtonClick 函数里，调用 trackOldBodyClick(buttonName);
+
+// ===== 兼容方案：如果前面的指令序列系统已经存在 =====
+// 在 trackButtonClick 函数里添加这一行（如果存在的话）
+// 或者新建一个独立的监听
+
+// 这里提供一个独立的监听方式：在页面加载后，给所有换装按钮绑定监听
+document.addEventListener('DOMContentLoaded', function() {
+    var buttons = document.querySelectorAll('.cloth-btn');
+    buttons.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var btnText = btn.textContent.trim();
+            // 如果是「旧版义体」，累计计数
+            if (btnText === '旧版义体') {
+                trackOldBodyClick(btnText);
+            }
+        });
+    });
+});
+
+// ============================================================
 // 🎮 隐藏指令序列解锁系统
 // ============================================================
 
@@ -677,6 +786,7 @@ var isCommandUnlocked = false;
 // 监听按钮点击
 function trackButtonClick(buttonName) {
     // 如果已经解锁，不再重复触发
+    trackOldBodyClick(buttonName);
     if (isCommandUnlocked) return;
     
     // 如果玩家点错了按钮，重置进度
@@ -740,7 +850,7 @@ function unlockCommandHiddenButton() {
         var list = document.getElementById('commentList');
         var newItem = document.createElement('div');
         newItem.className = 'comment-item';
-        newItem.innerHTML = '<span class="name" style="color:#ff66ff;">系统</span><span>隐藏指令序列已破解！解锁来自“一名友好意识唤醒者”的私密贴！</span><span class="time">刚刚</span>';
+        newItem.innerHTML = '<span class="name" style="color:#aaff88;">系统</span><span>隐藏指令序列已破解！解锁来自“一名友好意识唤醒者”的私密贴！</span><span class="time">刚刚</span>';
         list.insertBefore(newItem, list.firstChild);
     };
     
@@ -763,7 +873,7 @@ function unlockCommandHiddenButton() {
     var list = document.getElementById('commentList');
     var newItem = document.createElement('div');
     newItem.className = 'comment-item';
-    newItem.innerHTML = '<span class="name" style="color:#ff66ff;">系统</span><span>已触发密码！用户：■■■ 欢迎使用</span><span class="time">刚刚</span>';
+    newItem.innerHTML = '<span class="name" style="color:#aaff88;">系统</span><span>已触发密码！用户：■■■ 欢迎使用</span><span class="time">刚刚</span>';
     list.insertBefore(newItem, list.firstChild);
 }
 
@@ -1163,6 +1273,12 @@ contentDiv.style.cssText = `
 `;
 
 contentDiv.innerHTML = `
+    <div style="margin-bottom:12px; border-bottom:1px dashed #1a2a1a; padding-bottom:10px;">
+        <span style="color:#33ff66;">▶ 2026.08.12</span>
+        <div style="margin-left:12px; color:#bbffbb;">
+            • 新增「旧版义体」累计点击解锁「偷拍视角」功能<br>
+            • 新增「隐藏指令序列」解锁「旧义体·隐藏」功能
+        </div>
     <div style="margin-bottom:12px; border-bottom:1px dashed #1a2a1a; padding-bottom:10px;">
         <span style="color:#33ff66;">▶ 2026.08.11</span>
         <div style="margin-left:12px; color:#bbffbb;">
