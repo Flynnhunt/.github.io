@@ -348,6 +348,197 @@
         min-height: 100px;
       }
     }
+    /* ===== 头像呼吸 + 扫描线效果 ===== */
+#monitorImg {
+  animation: breathe 3s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% {
+    opacity: 1;
+    filter: brightness(1) drop-shadow(0 0 5px rgba(51, 255, 102, 0.15));
+  }
+  50% {
+    opacity: 0.75;
+    filter: brightness(1.4) drop-shadow(0 0 25px rgba(51, 255, 102, 0.5));
+  }
+}
+
+/* 可选：在头像上方叠加一层扫描线动画 */
+.monitor-avatar {
+  position: relative;
+  overflow: hidden;
+}
+
+.monitor-avatar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(51, 255, 102, 0.03) 2px,
+    rgba(51, 255, 102, 0.03) 4px
+  );
+  pointer-events: none;
+  animation: scan 4s linear infinite;
+}
+
+@keyframes scan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+/* ===== 像素闪烁 ===== */
+#gameImg {
+  animation: flicker 3s steps(2) infinite;
+}
+
+@keyframes flicker {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+  51% {
+    opacity: 1;
+  }
+  52% {
+    opacity: 0.9;
+  }
+}
+/* ===== 扫描线 ===== */
+#character-box {
+  position: relative;
+  overflow: hidden;
+}
+
+#character-box::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.1) 3px,
+    rgba(0, 0, 0, 0.1) 4px
+  );
+  pointer-events: none;
+  z-index: 2;
+  animation: scanlines 8s linear infinite;
+}
+
+@keyframes scanlines {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+/* ===== 全息干扰 ===== */
+#gameImg {
+  animation: glitch 4s ease-in-out infinite;
+}
+
+@keyframes glitch {
+  0%, 100% {
+    filter: brightness(1);
+    transform: skewX(0deg);
+  }
+  2% {
+    filter: brightness(1.5);
+    transform: skewX(-2deg);
+  }
+  4% {
+    filter: brightness(1);
+    transform: skewX(0deg);
+  }
+  6% {
+    filter: brightness(1.3);
+    transform: skewX(2deg);
+  }
+  8%, 100% {
+    filter: brightness(1);
+    transform: skewX(0deg);
+  }
+}
+/* ===== 动态心电图容器 ===== */
+.ecg-wrapper {
+  margin-top: 10px;
+  width: 100%;
+  border: 1px solid #1a3a1a;
+  background: #0a120a;
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+  height: 56px;
+  box-sizing: border-box;
+}
+
+.ecg-wrapper canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+}
+
+/* 心电图标签 */
+.ecg-label {
+  position: absolute;
+  bottom: 2px;
+  right: 6px;
+  font-size: 8px;
+  color: #2a4a3a;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 1px;
+  z-index: 2;
+  opacity: 0.6;
+}
+/* ===== 心电图声音开关 ===== */
+.ecg-sound-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #0f140f;
+  color: #33ff66;
+  border: 1px solid #1a3a1a;
+  padding: 2px 10px 2px 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+}
+
+.ecg-sound-toggle:hover {
+  border-color: #33ff66;
+  background: #1a2a1a;
+}
+
+.ecg-sound-toggle .indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 0;
+  transition: all 0.2s ease;
+}
+
+.ecg-sound-toggle .indicator.on {
+  background: #33ff66;
+  box-shadow: 0 0 8px rgba(51, 255, 102, 0.4);
+}
+
+.ecg-sound-toggle .indicator.off {
+  background: #2a4a2a;
+  box-shadow: none;
+}
   </style>
 </head>
 <body>
@@ -356,7 +547,7 @@
 
   <!-- ===== 左侧：监控面板 ===== -->
   <div class="panel monitor-panel">
-    <div class="panel-title">⬡ 监控系统 v2.1</div>
+    <div class="panel-title">⬡ 监控系统 v2.2</div>
 
     <div class="monitor-avatar">
       <div class="avatar-box">
@@ -1157,6 +1348,505 @@ window.addComment = function() {
 };
 
 // ============================================================
+// 💚 动态心电图 + 心跳音效（带开关）
+// ============================================================
+
+function createDynamicECG() {
+    // 1. 创建容器
+    var monitorPanel = document.querySelector('.monitor-panel');
+    var moodSection = monitorPanel.querySelector('.monitor-mood');
+    
+    if (document.getElementById('ecg-wrapper')) return;
+    
+    var wrapper = document.createElement('div');
+    wrapper.id = 'ecg-wrapper';
+    wrapper.className = 'ecg-wrapper';
+    wrapper.style.cssText = `
+        margin-top: 10px;
+        width: 100%;
+        border: 1px solid #1a3a1a;
+        background: #0a120a;
+        padding: 0;
+        position: relative;
+        overflow: hidden;
+        height: 56px;
+        box-sizing: border-box;
+    `;
+    
+    var canvas = document.createElement('canvas');
+    canvas.id = 'ecg-canvas';
+    canvas.width = 320;
+    canvas.height = 56;
+    canvas.style.cssText = `
+        width: 100%;
+        height: 100%;
+        display: block;
+        image-rendering: pixelated;
+    `;
+    
+    var label = document.createElement('div');
+    label.className = 'ecg-label';
+    label.textContent = '❤ ECG';
+    label.style.cssText = `
+        position: absolute;
+        bottom: 2px;
+        right: 6px;
+        font-size: 8px;
+        color: #2a4a3a;
+        font-family: 'Courier New', monospace;
+        letter-spacing: 1px;
+        z-index: 2;
+        opacity: 0.6;
+    `;
+    
+    wrapper.appendChild(canvas);
+    wrapper.appendChild(label);
+    moodSection.parentNode.insertBefore(wrapper, moodSection.nextSibling);
+    
+    // ============================================================
+    // 🔊 声音开关
+    // ============================================================
+    var soundEnabled = true;
+    
+    var toggleBtn = document.createElement('div');
+    toggleBtn.className = 'ecg-sound-toggle';
+    toggleBtn.innerHTML = `
+        <span class="indicator on" id="ecg-sound-indicator"></span>
+        <span>心音（默认开启）</span>
+    `;
+    toggleBtn.style.cssText = `
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #0f140f;
+        color: #33ff66;
+        border: 1px solid #1a3a1a;
+        padding: 2px 10px 2px 8px;
+        font-family: 'Courier New', monospace;
+        font-size: 10px;
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+        margin-top: 4px;
+        letter-spacing: 0.5px;
+    `;
+    
+    toggleBtn.onmouseover = function() {
+        this.style.borderColor = '#33ff66';
+        this.style.background = '#1a2a1a';
+    };
+    toggleBtn.onmouseout = function() {
+        this.style.borderColor = '#1a3a1a';
+        this.style.background = '#0f140f';
+    };
+    
+    toggleBtn.onclick = function() {
+        soundEnabled = !soundEnabled;
+        var indicator = this.querySelector('.indicator');
+        if (soundEnabled) {
+            indicator.className = 'indicator on';
+            indicator.style.background = '#33ff66';
+            indicator.style.boxShadow = '0 0 8px rgba(51, 255, 102, 0.4)';
+            playHeartbeatSound();
+        } else {
+            indicator.className = 'indicator off';
+            indicator.style.background = '#2a4a2a';
+            indicator.style.boxShadow = 'none';
+        }
+    };
+    
+    wrapper.parentNode.insertBefore(toggleBtn, wrapper.nextSibling);
+    
+    // ============================================================
+    // 绘图初始化
+    // ============================================================
+    var ctx = canvas.getContext('2d');
+    var W = canvas.width;
+    var H = canvas.height;
+    var centerY = H / 2;
+    
+    var bufferSize = W;
+    var ecgBuffer = new Array(bufferSize).fill(centerY);
+    var writeIndex = 0;
+    
+    // ============================================================
+    // 🔊 心跳音效
+    // ============================================================
+    var audioCtx = null;
+    
+    function initAudioContext() {
+        if (!audioCtx) {
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            } catch(e) {}
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        return audioCtx;
+    }
+    
+    function playHeartbeatSound() {
+        try {
+            var ctx = initAudioContext();
+            if (!ctx) return;
+            var now = ctx.currentTime;
+            
+            var osc1 = ctx.createOscillator();
+            var gain1 = ctx.createGain();
+            osc1.type = 'sine';
+            osc1.frequency.value = 900 + Math.random() * 100;
+            gain1.gain.setValueAtTime(0.25, now);
+            gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+            osc1.connect(gain1);
+            gain1.connect(ctx.destination);
+            osc1.start(now);
+            osc1.stop(now + 0.06);
+            
+            var osc2 = ctx.createOscillator();
+            var gain2 = ctx.createGain();
+            osc2.type = 'sine';
+            osc2.frequency.value = 700 + Math.random() * 80;
+            gain2.gain.setValueAtTime(0.15, now + 0.06);
+            gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+            osc2.connect(gain2);
+            gain2.connect(ctx.destination);
+            osc2.start(now + 0.06);
+            osc2.stop(now + 0.12);
+        } catch(e) {}
+    }
+    
+    var lastBeatSoundTime = 0;
+    var beatSoundCooldown = 150;
+    
+    function triggerHeartbeatSound() {
+        if (!soundEnabled) return;  // 👈 开关控制
+        var now = Date.now();
+        if (now - lastBeatSoundTime < beatSoundCooldown) return;
+        lastBeatSoundTime = now;
+        playHeartbeatSound();
+    }
+    
+    // ============================================================
+    // 心情值 & 颜色
+    // ============================================================
+    function getMood() {
+        var display = document.getElementById('moodDisplay');
+        if (!display) return 70;
+        var num = parseInt(display.textContent);
+        return isNaN(num) ? 70 : Math.min(100, Math.max(0, num));
+    }
+    
+    function getECGColor() {
+        var mood = getMood();
+        if (mood < 30) return '#ff5544';
+        if (mood < 60) return '#ffcc33';
+        return '#33ff66';
+    }
+    
+    function getBeatInterval() {
+        var mood = getMood();
+        var minInterval = 280;
+        var maxInterval = 1200;
+        return maxInterval - (mood / 100) * (maxInterval - minInterval);
+    }
+    
+    // ============================================================
+    // 波形生成
+    // ============================================================
+    var beatPhase = 0;
+    var lastBeatDetected = false;
+    
+    function generateECGPoint() {
+        var mood = getMood();
+        var amp = 16 + (mood / 100) * 10;
+        var base = centerY + (Math.random() - 0.5) * 1.5;
+        var interval = getBeatInterval();
+        var speed = 1000 / interval;
+        beatPhase += 0.02 * speed * 1.5;
+        if (beatPhase > Math.PI * 2) beatPhase -= Math.PI * 2;
+        var heartbeat = 0;
+        var phase = beatPhase % (Math.PI * 2);
+        var isBeat = false;
+        if (phase < 0.15) {
+            var t = phase / 0.15;
+            heartbeat = -amp * Math.sin(t * Math.PI) * 0.9;
+            if (t > 0.5 && !lastBeatDetected) {
+                isBeat = true;
+                lastBeatDetected = true;
+            }
+        } else if (phase < 0.35) {
+            var t = (phase - 0.15) / 0.2;
+            heartbeat = amp * 0.15 * (1 - t);
+        } else if (phase < 0.5) {
+            var t = (phase - 0.35) / 0.15;
+            heartbeat = -amp * 0.3 * Math.sin(t * Math.PI);
+        } else {
+            heartbeat = 0;
+            if (phase > 0.6) lastBeatDetected = false;
+        }
+        if (isBeat) triggerHeartbeatSound();
+        var noise = (Math.random() - 0.5) * 0.5;
+        return base + heartbeat + noise;
+    }
+    
+    // ============================================================
+    // 绘制循环
+    // ============================================================
+    function drawECG() {
+        var newPoint = generateECGPoint();
+        ecgBuffer[writeIndex] = newPoint;
+        writeIndex = (writeIndex + 1) % bufferSize;
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a120a';
+        ctx.fillRect(0, 0, W, H);
+        ctx.strokeStyle = '#152015';
+        ctx.lineWidth = 0.5;
+        for (var gx = 0; gx < W; gx += 20) {
+            ctx.beginPath();
+            ctx.moveTo(gx, 0);
+            ctx.lineTo(gx, H);
+            ctx.stroke();
+        }
+        for (var gy = 0; gy < H; gy += 10) {
+            ctx.beginPath();
+            ctx.moveTo(0, gy);
+            ctx.lineTo(W, gy);
+            ctx.stroke();
+        }
+        var color = getECGColor();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        var start = writeIndex;
+        for (var i = 0; i < bufferSize; i++) {
+            var idx = (start + i) % bufferSize;
+            var x = (i / bufferSize) * W;
+            var y = ecgBuffer[idx];
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        var minVal = Infinity;
+        var minIdx = 0;
+        for (var p = 0; p < bufferSize; p++) {
+            if (ecgBuffer[p] < minVal) {
+                minVal = ecgBuffer[p];
+                minIdx = p;
+            }
+        }
+        var px = ((minIdx - start + bufferSize) % bufferSize) / bufferSize * W;
+        var py = minVal;
+        ctx.fillStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 20;
+        ctx.fillRect(px - 2, py - 2, 4, 4);
+        ctx.shadowBlur = 0;
+        var mood = getMood();
+        var bpm = Math.round(60 / (getBeatInterval() / 1000));
+        ctx.fillStyle = '#2a4a3a';
+        ctx.font = '8px "Courier New", monospace';
+        ctx.fillText(bpm + ' bpm', W - 55, H - 4);
+        var barWidth = 40;
+        var barHeight = 4;
+        var fillWidth = (mood / 100) * barWidth;
+        ctx.fillStyle = '#1a2a1a';
+        ctx.fillRect(4, H - 6, barWidth, barHeight);
+        ctx.fillStyle = color;
+        ctx.fillRect(4, H - 6, fillWidth, barHeight);
+        requestAnimationFrame(drawECG);
+    }
+    
+    setTimeout(drawECG, 100);
+    console.log('💚 动态心电图 + 心跳音效（带开关）已启动！');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(createDynamicECG, 500);
+});
+
+// ============================================================
+// 👤 双击头像 - 弹跳（像被吓到）
+// ============================================================
+
+function initAvatarBounce() {
+    var avatarImg = document.getElementById('monitorImg');
+    if (!avatarImg) return;
+    
+    var isAnimating = false;
+    
+    avatarImg.addEventListener('dblclick', function(e) {
+        e.stopPropagation();
+        if (isAnimating) return;
+        isAnimating = true;
+        
+        var steps = 10;
+        var step = 0;
+        
+        function bounceStep() {
+            var progress = step / steps;
+            // 弹性曲线：先缩后弹
+            var scale = 1 - 0.25 * Math.sin(progress * Math.PI * 2) * Math.exp(-progress * 2);
+            var rotate = 2 * Math.sin(progress * Math.PI * 3) * Math.exp(-progress * 2.5);
+            
+            avatarImg.style.transform = 'scale(' + scale + ') rotate(' + rotate + 'deg)';
+            step++;
+            
+            if (step < steps) {
+                setTimeout(bounceStep, 50);
+            } else {
+                avatarImg.style.transform = 'scale(1) rotate(0deg)';
+                isAnimating = false;
+            }
+        }
+        bounceStep();
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(initAvatarBounce, 500);
+});
+
+// ============================================================
+// 👤 双击头像 → 弹出感叹号
+// ============================================================
+
+function initExclamation() {
+    var avatarImg = document.getElementById('monitorImg');
+    if (!avatarImg) return;
+    
+    var isAnimating = false;
+    
+    // 感叹号池（可以自由增删改）
+    var exclamations = [
+        '❗',
+        '❕',
+        '！',
+        '❓',
+        '‼️',
+        '⁉️',
+        '⚠️',
+        '💥'
+    ];
+    
+    // 或者用文字版（更活泼）
+    var textExclamations = [
+        'WhAt!',
+        '😡',
+        '？？',
+        'Click!',
+        'STOP!',
+        '💢',
+    ];
+    
+    function createExclamation() {
+        // 随机选一个
+        var pool = Math.random() > 0.5 ? exclamations : textExclamations;
+        var content = pool[Math.floor(Math.random() * pool.length)];
+        
+        // 创建感叹号元素
+        var el = document.createElement('div');
+        el.textContent = content;
+        el.style.cssText = `
+            position: fixed;
+            font-size: ${32 + Math.random() * 24}px;
+            font-family: 'Courier New', monospace;
+            color: #ffcc33;
+            text-shadow: 0 0 30px rgba(255, 204, 51, 0.6);
+            pointer-events: none;
+            z-index: 99999;
+            user-select: none;
+            font-weight: bold;
+            image-rendering: pixelated;
+            animation: exclamationPop 1s ease-out forwards;
+        `;
+        
+        // 获取头像位置
+        var rect = avatarImg.getBoundingClientRect();
+        var x = rect.left + rect.width / 2 - 20 + (Math.random() - 0.5) * 30;
+        var y = rect.top - 30 + (Math.random() - 0.5) * 20;
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        
+        document.body.appendChild(el);
+        
+        // 1.2秒后移除
+        setTimeout(function() {
+            if (el.parentNode) {
+                el.parentNode.removeChild(el);
+            }
+        }, 1200);
+    }
+    
+    // 添加CSS动画
+    var styleSheet = document.createElement('style');
+    styleSheet.textContent = `
+        @keyframes exclamationPop {
+            0% {
+                opacity: 0;
+                transform: scale(0.3) translateY(10px) rotate(-10deg);
+            }
+            30% {
+                opacity: 1;
+                transform: scale(1.3) translateY(-10px) rotate(3deg);
+            }
+            60% {
+                transform: scale(0.9) translateY(0px) rotate(-2deg);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(1) translateY(-30px) rotate(0deg);
+            }
+        }
+    `;
+    document.head.appendChild(styleSheet);
+    
+    // 震动 + 感叹号
+    function doExclamation() {
+        if (isAnimating) return;
+        isAnimating = true;
+        
+        // 弹出感叹号
+        createExclamation();
+        
+        // 头像震动
+        var intensity = 6;
+        var steps = 10;
+        var step = 0;
+        
+        function shakeStep() {
+            var offset = (step % 2 === 0) ? -intensity : intensity;
+            var decay = 1 - (step / steps) * 0.8;
+            avatarImg.style.transform = 'translateX(' + (offset * decay) + 'px)';
+            step++;
+            
+            if (step < steps) {
+                setTimeout(shakeStep, 60);
+            } else {
+                avatarImg.style.transform = 'translateX(0px)';
+                isAnimating = false;
+            }
+        }
+        shakeStep();
+    }
+    
+    // 双击事件
+    avatarImg.addEventListener('dblclick', function(e) {
+        e.stopPropagation();
+        doExclamation();
+    });
+    
+    console.log('👤 双击感叹号效果已启动！');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(initExclamation, 500);
+});
+
+// ============================================================
 // 📋 更新日志弹窗系统（带渐入渐出效果）
 // ============================================================
 
@@ -1277,8 +1967,12 @@ contentDiv.innerHTML = `
         <span style="color:#33ff66;">▶ 2026.08.12</span>
         <div style="margin-left:12px; color:#bbffbb;">
             • 新增「旧版义体」累计点击解锁「偷拍视角」功能<br>
-            • 新增「隐藏指令序列」解锁「旧义体·隐藏」功能
+            • 新增「隐藏指令序列」解锁「旧义体·隐藏」功能<br>
+            • 新增监控头像以及装扮环节光效<br>
+            • 新增心电图以及心跳音效（带开关）<br>
+            • 新增双击头像动效
         </div>
+    </div>
     <div style="margin-bottom:12px; border-bottom:1px dashed #1a2a1a; padding-bottom:10px;">
         <span style="color:#33ff66;">▶ 2026.08.11</span>
         <div style="margin-left:12px; color:#bbffbb;">
@@ -1309,19 +2003,23 @@ contentDiv.innerHTML = `
 
 modal.appendChild(contentDiv);
 
-// ===== 5. 你自己的插画 =====
+// ===== 5. 你自己的插画（Sticky固定在底部） =====
 var illustrationDiv = document.createElement('div');
 illustrationDiv.style.cssText = `
     text-align: center;
     margin-top: 10px;
     padding-top: 12px;
     border-top: 1px dashed #2a4a2a;
+    position: sticky;
+    bottom: 0;
+    background: #0f140f;
+    z-index: 5;
 `;
 
 illustrationDiv.innerHTML = `
     <img src="images/update-illustration.png" alt="更新插画" style="
         max-width: 100%;
-        max-height: 140px;
+        max-height: 120px;
         border: 1px solid #1a3a1a;
         image-rendering: pixelated;
         border-radius: 4px;
@@ -1386,6 +2084,7 @@ document.addEventListener('keydown', function(e) {
         closeModal();
     }
 });
+
 </script>
 
 </body>
