@@ -356,7 +356,7 @@
 
   <!-- ===== 左侧：监控面板 ===== -->
   <div class="panel monitor-panel">
-    <div class="panel-title">⬡ 监控系统 v2.0</div>
+    <div class="panel-title">⬡ 监控系统 v2.1</div>
 
     <div class="monitor-avatar">
       <div class="avatar-box">
@@ -368,7 +368,7 @@
 
     <div class="monitor-reaction">
       <span class="prefix">⏺</span>
-      <span id="reactionText">等待着装指令...</span>
+      <span id="reactionText">一名友好意识唤醒者：为了打造一个富有温度的研究环境，已将温度调节器的温度固定在36摄氏度。</span>
     </div>
 
     <div class="monitor-mood">
@@ -390,11 +390,11 @@
 
   <!-- ===== 中间：角色展示 ===== -->
   <div class="panel center-panel">
-    <h1>✦ 换装情感协议 v1.0 ✦</h1>
+    <h1>✦ 换装情感协议 v2.0 ✦</h1>
     <div class="sub-head">--- 选择着装以更新对象状态 ---</div>
 
     <div id="character-box">
-      <img id="gameImg" src="images/u1.png" alt="我的角色">
+      <img id="gameImg" src="images/character.png" alt="我的角色">
     </div>
 
     <div class="btn-group" id="btnGroup">
@@ -654,6 +654,622 @@
     isPlaying = false;
     musicBtn.textContent = '▶ 播放音乐';
   });
+
+// ============================================================
+// 🎮 隐藏指令序列解锁系统
+// ============================================================
+
+// 定义指令序列： [按钮名称, 需要点击的次数]
+var commandSequence = [
+    { name: '日常便服', required: 5 },
+    { name: '旧版义体', required: 2 },
+    { name: '出差套装', required: 1 },
+    { name: '二一又一', required: 7 }
+];
+
+// 当前进度
+var currentStep = 0;        // 当前执行到第几步
+var currentCount = 0;       // 当前步骤已点击次数
+
+// 隐藏按钮是否已解锁
+var isCommandUnlocked = false;
+
+// 监听按钮点击
+function trackButtonClick(buttonName) {
+    // 如果已经解锁，不再重复触发
+    if (isCommandUnlocked) return;
+    
+    // 如果玩家点错了按钮，重置进度
+    if (buttonName !== commandSequence[currentStep].name) {
+        currentStep = 0;
+        currentCount = 0;
+        // 在监控反应区显示提示（可选）
+        document.getElementById('reactionText').textContent = '⚠ 指令序列已重置。请从第一步开始。';
+        return;
+    }
+    
+    // 正确按钮，计数+1
+    currentCount++;
+    
+    // 显示当前进度（在对话区）
+    var totalRequired = commandSequence[currentStep].required;
+    document.getElementById('dialogueText').textContent = '🔓 进度: ' + (currentStep + 1) + '/' + commandSequence.length + '  (' + currentCount + '/' + totalRequired + ')';
+    
+    // 检查当前步骤是否完成
+    if (currentCount >= totalRequired) {
+        // 进入下一步
+        currentStep++;
+        currentCount = 0;
+        
+        // 检查是否所有步骤都完成了
+        if (currentStep >= commandSequence.length) {
+            // 🎉 全部完成！解锁隐藏按钮
+            unlockCommandHiddenButton();
+        } else {
+            // 提示进入下一步
+            var nextName = commandSequence[currentStep].name;
+            document.getElementById('reactionText').textContent = '✅ 步骤完成！下一步：点击「' + nextName + '」' + commandSequence[currentStep].required + ' 次';
+            document.getElementById('dialogueText').textContent = '🔓 下一步：点击「' + nextName + '」' + commandSequence[currentStep].required + ' 次';
+        }
+    }
+}
+
+// 解锁指令隐藏按钮
+function unlockCommandHiddenButton() {
+    isCommandUnlocked = true;
+    
+    var btnGroup = document.getElementById('btnGroup');
+    
+    // 检查是否已经存在，避免重复添加
+    var existingBtn = btnGroup.querySelector('.command-hidden-btn');
+    if (existingBtn) return;
+    
+    var hiddenBtn = document.createElement('button');
+    hiddenBtn.className = 'cloth-btn command-hidden-btn';
+    hiddenBtn.style.borderColor = '#ff66ff';
+    hiddenBtn.style.color = '#ff66ff';
+    hiddenBtn.style.boxShadow = '0 0 30px rgba(255, 102, 255, 0.4)';
+    hiddenBtn.style.animation = 'glowPulse 1.5s ease-in-out infinite';
+    hiddenBtn.textContent = '旧义体·隐藏';
+    hiddenBtn.onclick = function() {
+        changeOutfit('images/hidden2.png', '阿德勒说这样会更亲切，但为什么要用旧义体？啊...如果他很念旧的话就说得通了。', 100);
+        hiddenBtn.style.opacity = '0.6';
+        hiddenBtn.style.cursor = 'default';
+        hiddenBtn.onclick = null;
+        
+        var list = document.getElementById('commentList');
+        var newItem = document.createElement('div');
+        newItem.className = 'comment-item';
+        newItem.innerHTML = '<span class="name" style="color:#ff66ff;">系统</span><span>隐藏指令序列已破解！解锁来自“一名友好意识唤醒者”的私密贴！</span><span class="time">刚刚</span>';
+        list.insertBefore(newItem, list.firstChild);
+    };
+    
+    btnGroup.appendChild(hiddenBtn);
+    
+    // 添加闪烁动画
+    var styleSheet = document.createElement('style');
+    styleSheet.textContent = `
+        @keyframes glowPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 102, 255, 0.3); }
+            50% { box-shadow: 0 0 50px rgba(255, 102, 255, 0.7); }
+        }
+    `;
+    document.head.appendChild(styleSheet);
+    
+    document.getElementById('reactionText').textContent = '🎉 指令序列已破解！点击紫色按钮解锁隐藏服装！';
+    document.getElementById('dialogueText').textContent = '🎉 指令序列已破解！点击紫色按钮解锁隐藏服装！';
+    
+    // 在评论区发一条公告
+    var list = document.getElementById('commentList');
+    var newItem = document.createElement('div');
+    newItem.className = 'comment-item';
+    newItem.innerHTML = '<span class="name" style="color:#ff66ff;">系统</span><span>已触发密码！用户：■■■ 欢迎使用</span><span class="time">刚刚</span>';
+    list.insertBefore(newItem, list.firstChild);
+}
+
+// ===== 修改换装按钮，添加追踪功能 =====
+// 注意：你需要修改 HTML 里每个换装按钮的 onclick
+
+// 如果你不想改 HTML，可以用下面的方式劫持点击事件
+// 在页面加载后，自动给所有换装按钮添加追踪
+document.addEventListener('DOMContentLoaded', function() {
+    // 找到所有换装按钮
+    var buttons = document.querySelectorAll('.cloth-btn');
+    buttons.forEach(function(btn) {
+        // 保存原来的 onclick
+        var originalOnClick = btn.onclick;
+        // 替换成新的
+        btn.onclick = function(e) {
+            // 获取按钮文字
+            var btnText = btn.textContent.trim();
+            // 追踪点击
+            trackButtonClick(btnText);
+            // 执行原来的换装逻辑（通过模拟点击或者直接调用）
+            if (typeof originalOnClick === 'function') {
+                originalOnClick.call(btn, e);
+            }
+        };
+    });
+});
+
+  // ============================================================
+// 🎮 像素空心圆圈点击痕迹（鼠标 + 触屏）
+// ============================================================
+
+// 1. 创建痕迹容器
+var trailContainer = document.createElement('div');
+trailContainer.id = 'trail-container';
+trailContainer.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    overflow: hidden;
+`;
+document.body.appendChild(trailContainer);
+
+// 2. 添加CSS动画（如果还没有的话）
+var styleSheet = document.createElement('style');
+styleSheet.textContent = `
+    @keyframes pixelRingFade {
+        0% {
+            opacity: 1;
+            transform: scale(0.3) rotate(0deg);
+        }
+        100% {
+            opacity: 0;
+            transform: scale(1.5) rotate(10deg);
+        }
+    }
+`;
+document.head.appendChild(styleSheet);
+
+// 3. 创建痕迹函数（像素空心圆圈）
+function createTrail(x, y) {
+    // 随机大小：20~40px
+    var size = 20 + Math.random() * 20;
+    
+    // 随机绿色系（复古风）
+    var hue = 120 + Math.random() * 30;
+    var color = 'hsl(' + hue + ', 100%, 65%)';
+    
+    var dot = document.createElement('div');
+    dot.style.cssText = `
+        position: absolute;
+        left: ${x - size/2}px;
+        top: ${y - size/2}px;
+        width: ${size}px;
+        height: ${size}px;
+        border: 3px solid ${color};
+        border-radius: 0;
+        box-shadow: 0 0 8px ${color}, inset 0 0 4px ${color};
+        opacity: 1;
+        transform: scale(0.3);
+        image-rendering: pixelated;
+        animation: pixelRingFade 0.7s ease-out forwards;
+    `;
+    
+    trailContainer.appendChild(dot);
+    
+    // 0.8秒后移除元素
+    setTimeout(function() {
+        if (dot.parentNode) {
+            dot.parentNode.removeChild(dot);
+        }
+    }, 800);
+}
+
+// 4. 监听鼠标点击
+document.addEventListener('click', function(e) {
+    createTrail(e.clientX, e.clientY);
+});
+
+// 5. 监听触屏点击（移动端）
+document.addEventListener('touchstart', function(e) {
+    var touch = e.touches[0];
+    createTrail(touch.clientX, touch.clientY);
+}, { passive: true });
+
+// ============================================================
+// 🤖 关键词自动回复系统（带延迟 + 音效）
+// ============================================================
+
+// 关键词回复规则表
+var keywordReplies = [
+    {
+        keywords: ['可爱', '好可爱', '卡哇伊'],
+        reply: '@你 可爱的定义多样化：生物学、心理学、行为学、哲学。但我想作为搭配来说，这是一种夸赞？你的心情值有所上升，我想这一套穿搭激发了你的多巴胺分泌。这是一种正向情绪传递，而我也感受到了你的积极向上，所以，谢谢你。(◕‿◕)',
+        author: '一名友好意识唤醒者'
+    },
+    {
+        keywords: ['优雅', '气质', '好看'],
+        reply: '@你 充满善意与赞美的评论，你很有品味。',
+        author: '一名友好意识唤醒者'
+    },
+    {
+        keywords: ['换装', '衣服', '穿搭'],
+        reply: '换装协议运行中。目前心情值：' + document.getElementById('moodDisplay').textContent + '。',
+        author: '一名友好意识唤醒者'
+    },
+    {
+        keywords: ['彩蛋', '隐藏', '秘密'],
+        reply: '⚠ 检测到关键词“彩蛋”。提示：多换几套衣服，可能会有意外发现……',
+        author: '系统'
+    },
+    {
+        keywords: ['桌面清理大师'],
+        reply: '「桌面清理大师」正在巡视中……',
+        author: '系统'
+    },
+    {
+        keywords: ['乌尔里希', '组长', 'ulrich'],
+        reply: '@你 ◉‿◉',
+        author: '一名友好意识唤醒者'
+    },
+    {
+        keywords: ['义体'],
+        reply: '@你 很高兴这里有人除了维修部还能够对义体产生兴趣。义体的设计理念是为了更好地适应环境和任务需求，而不仅仅是外观。每一套义体都有其独特的功能和美学价值。',
+        author: '一名友好意识唤醒者'
+    },
+    {
+        keywords:['色情','色气','性感','sexy','涩','好色'],
+        reply: '@你 ?',
+        author: '桌面清理大师'
+    },
+    {
+        keywords: ['无聊', '没意思', '就这'],
+        reply: '@你 一千个人眼中有一千个哈姆雷特，萝卜白菜各有所爱。我理解你的感受，但请记住，每个人的审美和兴趣都不同。所以还请不要打击各位的兴致。',
+        author: '一名友好意识唤醒者'
+    },
+    {
+        keywords: ['咖啡', '咖啡机'],
+        reply: '啊，说到咖啡机……有谁需要来些咖啡吗？我刚好路过拉普拉斯科算中心的咖啡机，顺便带了几杯。',
+        author: '一名友好意识唤醒者'
+    },
+    {
+        keywords: ['阿德勒', 'adler','负责人'],
+        reply: '@你 噢，你说阿德勒？我知道，他总是会在我的帖子下发表负面言论，但我并不在意，毕竟以我对他的了解，这只是human boy的幼稚反驳，他其实爱看的很，比如上次...',
+        author: '一名友好意识唤醒者'
+    },
+    {
+        keywords: ['onlyfans', 'only fans', 'OF'],
+        reply: '⚠ 检测到敏感词。乌尔里希组长正在赶来删除这条记录的路上……',
+        author: '系统'
+    },
+    {
+        keywords:['牵手','牵牵小手'],
+        reply:  '@你 哦我们当然拍了牵手照了...不过基于人类的羞耻心，有人不让我发...说不定你可以产生破解密码？',
+        author:'一名友好意识唤醒者'
+    },
+    {
+        keywords: ['磁流体', '磁流'],
+        reply: '@你 友情提醒：拉普拉斯科算中心不对因过度迷恋磁流体导致的工作效率下降负责。',
+        author: '匿名'
+    }
+];
+
+// 🔊 播放“叮”的声音（使用 Web Audio API 生成）
+function playDingSound() {
+    try {
+        var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // 创建一个短促的高频音调（类似“叮”）
+        var oscillator = audioCtx.createOscillator();
+        var gainNode = audioCtx.createGain();
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.value = 1200; // 高音，类似“叮”
+        
+        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.15);
+    } catch(e) {
+        // 静默失败
+    }
+}
+
+// 检测关键词并回复（带延迟）
+function checkKeywordReply(inputText) {
+    var lowerInput = inputText.toLowerCase();
+    
+    for (var i = 0; i < keywordReplies.length; i++) {
+        var rule = keywordReplies[i];
+        for (var j = 0; j < rule.keywords.length; j++) {
+            var keyword = rule.keywords[j];
+            if (lowerInput.includes(keyword.toLowerCase())) {
+                // 匹配成功，计算延迟时间（0.5~1.5秒随机）
+                var delay = 500 + Math.random() * 1000; // 500ms ~ 1500ms
+                
+                // 把回复内容存下来，供延迟执行使用
+                var replyText = rule.reply;
+                if (replyText.includes('心情值')) {
+                    var moodDisplay = document.getElementById('moodDisplay');
+                    replyText = replyText.replace('心情值', moodDisplay.textContent);
+                }
+                var authorName = rule.author;
+                
+                // 延迟执行回复
+                setTimeout(function() {
+                    // 先播放“叮”的声音
+                    playDingSound();
+                    
+                    // 再插入回复
+                    var list = document.getElementById('commentList');
+                    var newItem = document.createElement('div');
+                    newItem.className = 'comment-item';
+                    newItem.innerHTML = '<span class="name" style="color:#ffcc33;">' + authorName + '</span><span>' + replyText + '</span><span class="time">刚刚</span>';
+                    list.insertBefore(newItem, list.firstChild);
+                    
+                    while (list.children.length > 20) {
+                        list.removeChild(list.lastChild);
+                    }
+                }, delay);
+                
+                // 只触发第一条匹配的规则
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// ===== 修改 addComment 函数 =====
+// 用新的函数覆盖
+window.addComment = function() {
+    var input = document.getElementById('commentInput');
+    var text = input.value.trim();
+    if (text === '') return;
+
+    var list = document.getElementById('commentList');
+    var newItem = document.createElement('div');
+    newItem.className = 'comment-item';
+    var now = new Date();
+    var timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+    newItem.innerHTML = '<span class="name">你</span><span>' + text + '</span><span class="time">' + timeStr + '</span>';
+    list.insertBefore(newItem, list.firstChild);
+    
+    input.value = '';
+
+    while (list.children.length > 20) {
+        list.removeChild(list.lastChild);
+    }
+
+    // 检测关键词，如果有匹配则延迟自动回复
+    checkKeywordReply(text);
+};
+
+// ============================================================
+// 📋 更新日志弹窗系统（带渐入渐出效果）
+// ============================================================
+
+// 1. 创建左上角的“更新日志”按钮
+var logBtn = document.createElement('div');
+logBtn.id = 'update-log-btn';
+logBtn.textContent = '✎ 更新日志';
+logBtn.style.cssText = `
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 10000;
+    background: #0f140f;
+    color: #33ff66;
+    border: 2px solid #33ff66;
+    padding: 6px 14px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    box-shadow: 0 0 15px rgba(51, 255, 102, 0.1);
+    transition: all 0.2s ease;
+    user-select: none;
+`;
+logBtn.onmouseover = function() {
+    this.style.background = '#1a2a1a';
+    this.style.boxShadow = '0 0 25px rgba(51, 255, 102, 0.2)';
+};
+logBtn.onmouseout = function() {
+    this.style.background = '#0f140f';
+    this.style.boxShadow = '0 0 15px rgba(51, 255, 102, 0.1)';
+};
+document.body.appendChild(logBtn);
+
+// 2. 创建弹窗遮罩（带渐入背景）
+var overlay = document.createElement('div');
+overlay.id = 'update-overlay';
+overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0);
+    z-index: 10001;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(0px);
+    transition: background 0.4s ease, backdrop-filter 0.4s ease;
+`;
+
+// 3. 创建弹窗主体（带渐入动画）
+var modal = document.createElement('div');
+modal.id = 'update-modal';
+modal.style.cssText = `
+    background: #0f140f;
+    border: 3px solid #33ff66;
+    padding: 30px 35px;
+    max-width: 520px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 0 60px rgba(51, 255, 102, 0.15);
+    position: relative;
+    opacity: 0;
+    transform: scale(0.85) translateY(20px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+`;
+
+// 弹窗标题
+var modalTitle = document.createElement('h2');
+modalTitle.textContent = '✎ 更新日志';
+modalTitle.style.cssText = `
+    color: #33ff66;
+    font-family: 'Courier New', monospace;
+    font-size: 18px;
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 15px;
+    letter-spacing: 2px;
+    border-bottom: 1px dashed #2a4a2a;
+    padding-bottom: 10px;
+`;
+
+// 关闭按钮（右上角 ✕）
+var closeBtn = document.createElement('span');
+closeBtn.textContent = '✕';
+closeBtn.style.cssText = `
+    position: absolute;
+    top: 10px;
+    right: 16px;
+    font-size: 20px;
+    cursor: pointer;
+    color: #33ff66;
+    opacity: 0.6;
+    font-family: 'Courier New', monospace;
+    transition: opacity 0.2s;
+`;
+closeBtn.onmouseover = function() { this.style.opacity = '1'; };
+closeBtn.onmouseout = function() { this.style.opacity = '0.6'; };
+closeBtn.onclick = closeModal;
+
+modal.appendChild(closeBtn);
+modal.appendChild(modalTitle);
+
+// ===== 4. 更新内容（可自由编辑） =====
+var contentDiv = document.createElement('div');
+contentDiv.style.cssText = `
+    color: #88ff88;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    margin-bottom: 15px;
+`;
+
+contentDiv.innerHTML = `
+    <div style="margin-bottom:12px; border-bottom:1px dashed #1a2a1a; padding-bottom:10px;">
+        <span style="color:#33ff66;">▶ 2026.08.11</span>
+        <div style="margin-left:12px; color:#bbffbb;">
+            • 新增像素点击痕迹特效<br>
+            • 新增更新日志弹窗<br>
+            • 更新初始签名<br>
+            • 新增关键词自动回复系统（带延迟 + 音效）<br>
+            • 新增隐藏指令序列解锁按钮
+        </div>
+    </div>
+    <div style="margin-bottom:12px; border-bottom:1px dashed #1a2a1a; padding-bottom:10px;">
+        <span style="color:#33ff66;">▶ 2026.08.10</span>
+        <div style="margin-left:12px; color:#bbffbb;">
+            • 换装系统上线：6套服装<br>
+            • 监控面板 + 评价区功能完成<br>
+            • 背景音乐播放器<br>
+            • 新增桌面清理大师彩蛋收集系统
+        </div>
+    </div>
+    <div style="margin-bottom:5px;">
+        <span style="color:#33ff66;">▶ 2026.08.09</span>
+        <div style="margin-left:12px; color:#bbffbb;">
+            • 项目启动：换装情感协议 v1.0<br>
+            • 复古终端风格UI设计
+        </div>
+    </div>
+`;
+
+modal.appendChild(contentDiv);
+
+// ===== 5. 你自己的插画 =====
+var illustrationDiv = document.createElement('div');
+illustrationDiv.style.cssText = `
+    text-align: center;
+    margin-top: 10px;
+    padding-top: 12px;
+    border-top: 1px dashed #2a4a2a;
+`;
+
+illustrationDiv.innerHTML = `
+    <img src="images/update-illustration.png" alt="更新插画" style="
+        max-width: 100%;
+        max-height: 140px;
+        border: 1px solid #1a3a1a;
+        image-rendering: pixelated;
+        border-radius: 4px;
+    ">
+    <div style="font-size:10px; color:#446644; margin-top:4px;">
+        ✦ 画师：艾曲 ✦
+    </div>
+`;
+
+modal.appendChild(illustrationDiv);
+
+// 弹窗底部提示
+var footerNote = document.createElement('div');
+footerNote.textContent = '点击外部或 ✕ 关闭';
+footerNote.style.cssText = `
+    text-align: center;
+    font-size: 10px;
+    color: #2a4a2a;
+    margin-top: 14px;
+    letter-spacing: 1px;
+`;
+modal.appendChild(footerNote);
+
+overlay.appendChild(modal);
+document.body.appendChild(overlay);
+
+// ===== 6. 控制函数（带渐入渐出） =====
+function openModal() {
+    overlay.style.display = 'flex';
+    
+    requestAnimationFrame(function() {
+        overlay.style.background = 'rgba(0, 0, 0, 0.8)';
+        overlay.style.backdropFilter = 'blur(4px)';
+        modal.style.opacity = '1';
+        modal.style.transform = 'scale(1) translateY(0)';
+    });
+    
+    overlay.onclick = function(e) {
+        if (e.target === overlay) {
+            closeModal();
+        }
+    };
+}
+
+function closeModal() {
+    overlay.style.background = 'rgba(0, 0, 0, 0)';
+    overlay.style.backdropFilter = 'blur(0px)';
+    modal.style.opacity = '0';
+    modal.style.transform = 'scale(0.85) translateY(20px)';
+    
+    setTimeout(function() {
+        overlay.style.display = 'none';
+    }, 400);
+}
+
+// 点击左上角按钮打开弹窗
+logBtn.onclick = openModal;
+
+// ESC 键关闭弹窗
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && overlay.style.display === 'flex') {
+        closeModal();
+    }
+});
 </script>
 
 </body>
